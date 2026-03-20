@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PolyTrader v16</title>
+<title>PolyTrader v17</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -45,6 +45,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .tab.on{color:var(--green);border-bottom-color:var(--green);background:rgba(0,229,160,.04)}
 .tab.pizza-tab.on{color:var(--pizza);border-bottom-color:var(--pizza);background:rgba(255,107,53,.04)}
 .proxy-check{font-size:14px;color:var(--amber);opacity:0;transition:opacity .15s}
+
+
+.palette-card{padding:8px;border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s}
+.palette-card:hover{border-color:var(--green)}
+.palette-card.active{border-color:var(--green);background:rgba(0,229,160,.06)}
 
 /* BODY */
 .body{padding:10px 11px;overflow-y:auto;max-height:650px}
@@ -304,6 +309,7 @@ input[type=range]{flex:1;accent-color:var(--green)}
     <button class="tab"           onclick="goTab('p')">Posições</button>
     <button class="tab"           onclick="goTab('r')">Relatório</button>
     <button class="tab"           onclick="goTab('l')">Log</button>
+    <button class="tab"           onclick="goTab('cfg')">⚙️</button>
   </div>
 </div>
 
@@ -544,6 +550,34 @@ input[type=range]{flex:1;accent-color:var(--green)}
     <button class="btn" id="filt-pizza"  onclick="setPosFilt('pizza')"  style="flex:1;font-size:9px;padding:5px 2px">🍕</button>
   </div>
 
+
+  
+    <!-- PERFIS DE ESTRATÉGIA -->
+    <div class="card" style="margin-top:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="ctitle" style="margin:0">🎭 Perfis de Estratégia</div>
+        <button class="btn" onclick="newProfile()" style="font-size:9px;padding:3px 8px;color:var(--green);border-color:rgba(0,229,160,.3)">+ Novo</button>
+      </div>
+      <div id="profiles-list" style="display:flex;flex-direction:column;gap:5px;margin-bottom:8px"></div>
+      <div style="font-size:8px;font-family:var(--mono);color:var(--muted2)">
+        Cada perfil tem saldo demo, configurações e histórico próprios.
+      </div>
+    </div>
+
+  <!-- IMPORT / EXPORT configurações -->
+    <div class="card" style="margin-top:8px">
+      <div class="ctitle">📤 Config Compartilhável</div>
+      <div style="font-size:9px;font-family:var(--mono);color:var(--muted2);margin-bottom:10px;line-height:1.7">
+        Exporte suas configurações de estratégia para compartilhar ou fazer backup.
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <button class="btn btn-g" style="flex:1;padding:9px;font-size:11px" onclick="exportConfig()">📤 EXPORTAR</button>
+        <button class="btn" style="flex:1;padding:9px;font-size:11px;color:var(--cyan);border-color:rgba(34,211,238,.3)" onclick="document.getElementById('import-file').click()">📥 IMPORTAR</button>
+        <input type="file" id="import-file" accept=".json" style="display:none" onchange="importConfig(this)">
+      </div>
+      <div id="export-result" style="display:none;padding:8px;background:var(--bg);border-radius:7px;border:1px solid var(--border);font-size:8px;font-family:var(--mono);color:var(--green);word-break:break-all;max-height:80px;overflow-y:auto"></div>
+    </div>
+
   <!-- Botão fechar todas -->
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
     <span style="font-size:9px;font-family:var(--mono);color:var(--muted)" id="pos-count-lbl">— posições abertas</span>
@@ -716,6 +750,117 @@ input[type=range]{flex:1;accent-color:var(--green)}
 
 <!-- ══ API POLYMARKET ══ -->
 
+
+
+<!-- ══ ABA PERSONALIZAÇÃO ══ -->
+<div id="tcfg" class="hidden">
+
+  <!-- Tamanho da fonte -->
+  <div class="card">
+    <div class="ctitle">🔤 Tamanho do Texto</div>
+    <div style="display:flex;gap:6px;margin-top:6px">
+      <button class="btn" onclick="setFontSize('small')"  id="fs-small"  style="flex:1;padding:8px;font-size:10px">A</button>
+      <button class="btn" onclick="setFontSize('medium')" id="fs-medium" style="flex:1;padding:8px;font-size:13px">A</button>
+      <button class="btn" onclick="setFontSize('large')"  id="fs-large"  style="flex:1;padding:8px;font-size:16px">A</button>
+    </div>
+  </div>
+
+  <!-- Paleta de cores -->
+  <div class="card">
+    <div class="ctitle">🎨 Paleta de Cores</div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px" id="palette-grid">
+
+      <div class="palette-card active" id="pal-dark" onclick="setPalette('dark')">
+        <div style="display:flex;gap:4px;margin-bottom:4px">
+          <div style="width:14px;height:14px;border-radius:50%;background:#00e5a0"></div>
+          <div style="width:14px;height:14px;border-radius:50%;background:#22d3ee"></div>
+          <div style="width:14px;height:14px;border-radius:50%;background:#ff4d6d"></div>
+          <div style="width:14px;height:14px;border-radius:50%;background:#f5a623"></div>
+        </div>
+        <div style="font-size:9px;font-family:var(--mono)">Dark (padrão)</div>
+      </div>
+
+      <div class="palette-card" id="pal-midnight" onclick="setPalette('midnight')">
+        <div style="display:flex;gap:4px;margin-bottom:4px">
+          <div style="width:14px;height:14px;border-radius:50%;background:#60a5fa"></div>
+          <div style="width:14px;height:14px;border-radius:50%;background:#a78bfa"></div>
+          <div style="width:14px;height:14px;border-radius:50%;background:#f472b6"></div>
+          <div style="width:14px;height:14px;border-radius:50%;background:#34d399"></div>
+        </div>
+        <div style="font-size:9px;font-family:var(--mono)">Midnight Blue</div>
+      </div>
+
+      <div class="palette-card" id="pal-amber" onclick="setPalette('amber')">
+        <div style="display:flex;gap:4px;margin-bottom:4px">
+          <div style="width:14px;height:14px;border-radius:50%;background:#fbbf24"></div>
+          <div style="width:14px;height:14px;border-radius:50%;background:#f97316"></div>
+          <div style="width:14px;height:14px;border-radius:50%;background:#ef4444"></div>
+          <div style="width:14px;height:14px;border-radius:50%;background:#84cc16"></div>
+        </div>
+        <div style="font-size:9px;font-family:var(--mono)">Amber</div>
+      </div>
+
+      <div class="palette-card" id="pal-matrix" onclick="setPalette('matrix')">
+        <div style="display:flex;gap:4px;margin-bottom:4px">
+          <div style="width:14px;height:14px;border-radius:50%;background:#22c55e"></div>
+          <div style="width:14px;height:14px;border-radius:50%;background:#16a34a"></div>
+          <div style="width:14px;height:14px;border-radius:50%;background:#4ade80"></div>
+          <div style="width:14px;height:14px;border-radius:50%;background:#86efac"></div>
+        </div>
+        <div style="font-size:9px;font-family:var(--mono)">Matrix Green</div>
+      </div>
+
+      <div class="palette-card" id="pal-neon" onclick="setPalette('neon')">
+        <div style="display:flex;gap:4px;margin-bottom:4px">
+          <div style="width:14px;height:14px;border-radius:50%;background:#e879f9"></div>
+          <div style="width:14px;height:14px;border-radius:50%;background:#22d3ee"></div>
+          <div style="width:14px;height:14px;border-radius:50%;background:#fef08a"></div>
+          <div style="width:14px;height:14px;border-radius:50%;background:#f0abfc"></div>
+        </div>
+        <div style="font-size:9px;font-family:var(--mono)">Neon</div>
+      </div>
+
+      <div class="palette-card" id="pal-mono" onclick="setPalette('mono')">
+        <div style="display:flex;gap:4px;margin-bottom:4px">
+          <div style="width:14px;height:14px;border-radius:50%;background:#e2e8f0"></div>
+          <div style="width:14px;height:14px;border-radius:50%;background:#94a3b8"></div>
+          <div style="width:14px;height:14px;border-radius:50%;background:#cbd5e1"></div>
+          <div style="width:14px;height:14px;border-radius:50%;background:#f8fafc"></div>
+        </div>
+        <div style="font-size:9px;font-family:var(--mono)">Mono Light</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Cor de destaque customizada -->
+  <div class="card">
+    <div class="ctitle">✏️ Cor de Destaque</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+      <input type="color" id="custom-accent" value="#00e5a0"
+        style="width:44px;height:44px;border:none;border-radius:8px;cursor:pointer;background:none;padding:0"
+        oninput="setCustomAccent(this.value)">
+      <div>
+        <div style="font-size:11px;font-weight:600">Cor principal</div>
+        <div style="font-size:9px;font-family:var(--mono);color:var(--muted)">Afeta botões, saldos e indicadores</div>
+      </div>
+      <button class="btn" onclick="setCustomAccent('#00e5a0')" style="font-size:9px;margin-left:auto">Reset</button>
+    </div>
+  </div>
+
+  <!-- Reset -->
+  <div class="card">
+    <div class="ctitle" style="color:var(--muted)">🗑 Dados</div>
+    <div style="display:flex;gap:6px">
+      <button class="btn" style="flex:1;padding:8px;font-size:10px;color:var(--cyan);border-color:rgba(34,211,238,.3)" onclick="restoreLastSession()">↩ Restaurar</button>
+      <button class="btn btn-r" style="flex:1;padding:8px;font-size:10px" onclick="confirmResetData()">🗑 Tudo</button>
+      <button class="btn" style="flex:1;padding:8px;font-size:10px;color:var(--amber);border-color:rgba(245,166,35,.3)" onclick="confirmResetData('demo')">🔄 Demo</button>
+      <button class="btn" style="flex:1;padding:8px;font-size:10px;color:var(--cyan);border-color:rgba(34,211,238,.3)" onclick="confirmResetData('real')">🔄 Real</button>
+    </div>
+  </div>
+
+</div>
+<!-- /tcfg -->
 
 </div><!-- /body -->
 </div><!-- /phone -->
@@ -2323,7 +2468,7 @@ function startShared(){
     updPricesUI();upd();
   },2000);
 
-  if(!BI.clk){BI.clk=setInterval(()=>{GL.elapsed++;const h=String(Math.floor(GL.elapsed/3600)).padStart(2,'0'),m=String(Math.floor(GL.elapsed%3600/60)).padStart(2,'0'),s=String(GL.elapsed%60).padStart(2,'0');const el=document.getElementById('rep-clock');if(el)el.textContent=h+':'+m+':'+s;if(GL.elapsed%10===0){recordPnlSnapshot();}const tr=document.getElementById('tr');if(tr&&!tr.classList.contains('hidden'))updReport();},1000);}
+  if(!BI.clk){BI.clk=setInterval(()=>{GL.elapsed++;const h=String(Math.floor(GL.elapsed/3600)).padStart(2,'0'),m=String(Math.floor(GL.elapsed%3600/60)).padStart(2,'0'),s=String(GL.elapsed%60).padStart(2,'0');const el=document.getElementById('rep-clock');if(el)el.textContent=h+':'+m+':'+s;if(GL.elapsed%10===0){recordPnlSnapshot();}const tr=document.getElementById('tr');if(tr&&!tr.classList.contains('hidden')){updReport();drawPnlChart();updateChartStats();}},1000);}
 }
 function maybeStopShared(){
   if(!BOTS.edge&&!BOTS.copy&&!BOTS.crypto&&!PIZZA.monitoring){clearInterval(BI.price);BI.price=null;}
@@ -2824,13 +2969,14 @@ function addLog(type,msg){
 
 
 function goTab(t){
-  const tabs=['m','pz','sg','cr','cp','b','p','r','l'];
+  const tabs=['m','pz','sg','cr','cp','b','p','r','l','cfg'];
   tabs.forEach(x=>document.getElementById('t'+x).classList.toggle('hidden',x!==t));
   document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('on',tabs[i]===t));
   if(t==='m')renderMkts();
   if(t==='cp')renderTraders();
   if(t==='cr')renderCryptoWatchers();
-  if(t==='r')updReport();
+  if(t==='r'){updReport();drawPnlChart();updateChartStats();}
+  if(t==='cfg'){renderCfgTab();}
   if(t==='sg')refreshSuggestions();
   if(t==='pz'){renderDefcon();renderShops();renderPizzaAlert();}
   if(t==='p'){renderPos();}
@@ -3016,7 +3162,7 @@ function recordPnlSnapshot(){
     mode: tradeMode
   });
   if(PNL_HISTORY.length>180)PNL_HISTORY.shift();
-  try{localStorage.setItem('pt_pnl',JSON.stringify(PNL_HISTORY.slice(-60)));}catch(_){}
+  try{localStorage.setItem('pt_pnl_v17',JSON.stringify(PNL_HISTORY.slice(-60)));}catch(_){}
 }
 
 function setChartRange(m){ _chartRange=m; ['30','60','all'].forEach(k=>{ const el=document.getElementById('cr-'+k); if(el)el.style.color=(k===String(m)||(!m&&k==='all'))?'var(--green)':'var(--muted)'; }); drawPnlChart(); }
@@ -3104,7 +3250,7 @@ function playLossSound(){try{if(!_audioCtx)_audioCtx=new(window.AudioContext||wi
 function savePersistence(){
   try {
     const data = {
-      v: 16,
+      v: 17,
       ts: Date.now(),
       tradeMode,
       // Estado Demo
@@ -3128,67 +3274,60 @@ function savePersistence(){
       // Histórico PNL
       PNL_HISTORY: PNL_HISTORY.slice(-120),
     };
-    localStorage.setItem('polytrader_v16', JSON.stringify(data));
+    localStorage.setItem('polytrader_v17', JSON.stringify(data));
   } catch(e){ /* quota exceeded */ }
 }
 
 function loadPersistence(){
+  // Por padrão sempre começa do zero.
+  // Dados de trade (saldo, posições, histórico) nunca são restaurados automaticamente.
+  // Paleta de cores e perfis são carregados separadamente por _loadCfgPrefs e _loadProfiles.
+  return false;
+}
+
+function _applyPersistence(data){
+  // Mantido apenas para uso manual via aba ⚙️ se o usuário quiser restaurar
+  if(!data) return;
+  if(data.GL_DEMO){
+    GL_DEMO.free        = data.GL_DEMO.free        ?? 10;
+    GL_DEMO.inp         = data.GL_DEMO.inp          ?? 0;
+    GL_DEMO.elapsed     = data.GL_DEMO.elapsed      ?? 0;
+    GL_DEMO.totalOrders = data.GL_DEMO.totalOrders  ?? 0;
+    GL_DEMO.positions   = (data.GL_DEMO.positions   ?? []).map(p=>({...p}));
+    GL_DEMO.trades      = (data.GL_DEMO.trades      ?? []).slice(0,200);
+  }
+  if(data.STATS_DEMO) Object.assign(STATS_DEMO, data.STATS_DEMO);
+  if(data.GL_REAL){
+    GL_REAL.free        = data.GL_REAL.free        ?? 0;
+    GL_REAL.inp         = data.GL_REAL.inp          ?? 0;
+    GL_REAL.elapsed     = data.GL_REAL.elapsed      ?? 0;
+    GL_REAL.totalOrders = data.GL_REAL.totalOrders  ?? 0;
+    GL_REAL.positions   = (data.GL_REAL.positions   ?? []).map(p=>({...p}));
+    GL_REAL.trades      = (data.GL_REAL.trades      ?? []).slice(0,200);
+  }
+  if(data.STATS_REAL) Object.assign(STATS_REAL, data.STATS_REAL);
+  if(data.PNL_HISTORY?.length) PNL_HISTORY.push(...data.PNL_HISTORY);
+  tradeMode='demo'; GL=GL_DEMO; STATS=STATS_DEMO; bancaTotal=GL_DEMO.free;
+  addLog('g','✅ Sessão restaurada · $'+GL_DEMO.free.toFixed(2)+
+    ' · '+GL_DEMO.trades.length+' trades demo');
+  upd(); renderPos(); renderHist();
+}
+
+// Restaura sessão anterior manualmente (botão na aba ⚙️)
+function restoreLastSession(){
   try {
-    const raw = localStorage.getItem('polytrader_v16');
-    if(!raw) return false;
+    const raw = localStorage.getItem('polytrader_v17');
+    if(!raw){ addLog('la','⚠️ Nenhuma sessão salva encontrada'); return; }
     const data = JSON.parse(raw);
-    if(!data || data.v !== 16) return false;
-
-    const age = (Date.now() - data.ts) / 1000 / 60; // minutos
-    addLog('b', '💾 Restaurando sessão ('+ Math.round(age) +'min atrás)...');
-
-    // Restaura GL_DEMO
-    if(data.GL_DEMO){
-      GL_DEMO.free         = data.GL_DEMO.free  || 10;
-      GL_DEMO.inp          = data.GL_DEMO.inp   || 0;
-      GL_DEMO.elapsed      = data.GL_DEMO.elapsed || 0;
-      GL_DEMO.totalOrders  = data.GL_DEMO.totalOrders || 0;
-      GL_DEMO.positions    = data.GL_DEMO.positions || [];
-      GL_DEMO.trades       = data.GL_DEMO.trades || [];
-    }
-    if(data.STATS_DEMO) Object.assign(STATS_DEMO, data.STATS_DEMO);
-
-    // Restaura GL_REAL
-    if(data.GL_REAL){
-      GL_REAL.free        = data.GL_REAL.free || 0;
-      GL_REAL.inp         = data.GL_REAL.inp  || 0;
-      GL_REAL.elapsed     = data.GL_REAL.elapsed || 0;
-      GL_REAL.totalOrders = data.GL_REAL.totalOrders || 0;
-      GL_REAL.positions   = data.GL_REAL.positions || [];
-      GL_REAL.trades      = data.GL_REAL.trades || [];
-    }
-    if(data.STATS_REAL) Object.assign(STATS_REAL, data.STATS_REAL);
-
-    // Restaura PNL_HISTORY
-    if(data.PNL_HISTORY && data.PNL_HISTORY.length){
-      PNL_HISTORY.push(...data.PNL_HISTORY);
-    }
-
-    // Restaura bots ativos
-    if(data.BOTS_DEMO) Object.assign(BOTS_DEMO, data.BOTS_DEMO);
-    if(data.BOTS_REAL) Object.assign(BOTS_REAL, data.BOTS_REAL);
-
-    // Restaura modo
-    const mode = data.tradeMode || 'demo';
-    tradeMode = mode === 'real' ? 'demo' : 'demo'; // sempre começa em demo por segurança
-
-    addLog('g', '✅ Sessão restaurada: '
-      + GL_DEMO.trades.length + ' trades demo · '
-      + GL_REAL.trades.length + ' trades real');
-    addLog('b', '💡 Reconecte a wallet para retomar modo Real');
-    return true;
+    if(!data || data.v !== 17){ addLog('la','⚠️ Sessão inválida'); return; }
+    _applyPersistence(data);
+    addLog('b','💾 Sessão anterior restaurada');
   } catch(e){
-    addLog('la', '⚠️ Erro ao restaurar sessão: '+e.message);
-    return false;
+    addLog('r','❌ Erro ao restaurar: '+e.message);
   }
 }
 
-// Relança bots que estavam ativos na sessão anterior
+
 function resumeSavedBots(){
   // Demo bots
   if(BOTS_DEMO.edge && !BI_DEMO.edge){
@@ -3216,8 +3355,408 @@ window.addEventListener('beforeunload', ()=>savePersistence());
 setInterval(()=>savePersistence(), 30000);
 
 
+
+// ═══════════════════════════════════════════════════════════════
+//  EXPORT / IMPORT DE CONFIGURAÇÕES
+// ═══════════════════════════════════════════════════════════════
+
+function exportConfig(){
+  const cfg = {
+    _type: 'polytrader-config',
+    _v: 17,
+    _ts: new Date().toISOString(),
+    // Parâmetros de todos os bots
+    PA:         {...PA},
+    COPY_CFG:   {...COPY_CFG},
+    CRYPTO_CFG: {...CRYPTO_CFG},
+    PIZZA_CFG:  {...PIZZA_CFG},
+    STOP_LOSS:  {...STOP_LOSS},
+    // Histórico de trades demo para análise
+    trades_demo: GL_DEMO.trades.slice(0,100).map(t=>({
+      q:t.q, side:t.out, pnl:t.pnl, cost:t.cost,
+      source:t.source, ts:t.ts, closedAt:t.closedAt
+    })),
+    stats_demo: JSON.parse(JSON.stringify(STATS_DEMO)),
+  };
+
+  const json = JSON.stringify(cfg, null, 2);
+  const blob = new Blob([json], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'polytrader-config-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  addLog('g','📤 Config exportada com '+GL_DEMO.trades.length+' trades demo');
+
+  // Mostra preview
+  const res = document.getElementById('export-result');
+  if(res){
+    res.style.display='block';
+    res.textContent = '✓ Arquivo baixado · '
+      + Object.keys(cfg).length+' seções · '
+      + json.length+' bytes';
+  }
+}
+
+function importConfig(input){
+  const file = input.files[0];
+  if(!file){ return; }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const cfg = JSON.parse(e.target.result);
+      if(cfg._type !== 'polytrader-config'){
+        addLog('r','❌ Arquivo inválido — não é uma config do PolyTrader');
+        return;
+      }
+      // Aplica parâmetros
+      if(cfg.PA)         Object.assign(PA,         cfg.PA);
+      if(cfg.COPY_CFG)   Object.assign(COPY_CFG,   cfg.COPY_CFG);
+      if(cfg.CRYPTO_CFG) Object.assign(CRYPTO_CFG, cfg.CRYPTO_CFG);
+      if(cfg.PIZZA_CFG)  Object.assign(PIZZA_CFG,  cfg.PIZZA_CFG);
+      if(cfg.STOP_LOSS)  Object.assign(STOP_LOSS,  cfg.STOP_LOSS);
+      // Atualiza sliders
+      updSize(); updCopyCfg(); updCryptoCfg(); updPizzaCfg(); upd();
+      const trades = cfg.trades_demo ? cfg.trades_demo.length : 0;
+      addLog('g','📥 Config importada! '+trades+' trades de referência · v'+cfg._v);
+      addLog('b','💡 Configurações aplicadas · bots usarão novos parâmetros');
+      input.value=''; // reset input
+    } catch(err){
+      addLog('r','❌ Erro ao importar: '+err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PERFIS DEMO — múltiplas estratégias em paralelo
+// ═══════════════════════════════════════════════════════════════
+
+let PROFILES = [];       // [{id, name, GL, STATS, PA, COPY_CFG, ...}]
+let activeProfileId = 'default';
+
+function _saveProfiles(){
+  try{ localStorage.setItem('pt_profiles_v17', JSON.stringify(PROFILES)); }catch(_){}
+}
+function _loadProfiles(){
+  try{
+    const raw = localStorage.getItem('pt_profiles_v17');
+    if(raw) PROFILES = JSON.parse(raw);
+  }catch(_){}
+}
+
+function newProfile(){
+  const name = prompt('Nome do perfil (ex: "Agressivo", "Conservador"):');
+  if(!name || !name.trim()) return;
+  const id = 'p_'+Date.now();
+  const profile = {
+    id, name: name.trim(),
+    GL:    {free:10,inp:0,positions:[],trades:[],elapsed:0,totalOrders:0},
+    STATS: _makeStats(),
+    PA: {...PA}, COPY_CFG:{...COPY_CFG},
+    CRYPTO_CFG:{...CRYPTO_CFG}, PIZZA_CFG:{...PIZZA_CFG},
+    // Bots SEMPRE desligados ao criar — usuário configura antes de ligar
+    botsActive: {edge:false,copy:false,crypto:false,pizza:false},
+    createdAt: new Date().toISOString()
+  };
+  PROFILES.push(profile);
+  _saveProfiles();
+  addLog('g','🎭 Perfil "'+name.trim()+'" criado · bots desligados · configure e ative manualmente');
+  renderProfiles();
+}
+
+function switchProfile(id){
+  if(activeProfileId === id) return; // já neste perfil
+
+  // ── 1. Para TODOS os bots do perfil atual ──
+  const stopBot = (name) => {
+    if(BOTS_DEMO[name]){
+      if(BI_DEMO[name]){ clearInterval(BI_DEMO[name]); BI_DEMO[name]=null; }
+      BOTS_DEMO[name]=false;
+      updCtrl(name);
+    }
+  };
+  stopBot('edge'); stopBot('copy'); stopBot('crypto');
+  if(BOTS_DEMO.pizza){ clearInterval(BI_DEMO.pizza); BI_DEMO.pizza=null; BOTS_DEMO.pizza=false; PIZZA_DEMO.monitoring=false; updCtrl('pizza'); }
+  maybeStopShared();
+
+  // ── 2. Salva estado atual no perfil que está saindo ──
+  const saveCurrentState = (profId) => {
+    if(profId === 'default'){
+      // Perfil padrão — dados ficam em GL_DEMO/STATS_DEMO direto (já estão lá)
+      return;
+    }
+    const cur = PROFILES.find(p=>p.id===profId);
+    if(!cur) return;
+    cur.GL    = {free:GL_DEMO.free,inp:GL_DEMO.inp,
+                 positions:GL_DEMO.positions.map(p=>({...p})),
+                 trades:GL_DEMO.trades.slice(0,200),
+                 elapsed:GL_DEMO.elapsed,totalOrders:GL_DEMO.totalOrders};
+    cur.STATS = JSON.parse(JSON.stringify(STATS_DEMO));
+    cur.PA={...PA};cur.COPY_CFG={...COPY_CFG};
+    cur.CRYPTO_CFG={...CRYPTO_CFG};cur.PIZZA_CFG={...PIZZA_CFG};
+    cur.botsActive = {edge:false,copy:false,crypto:false,pizza:false}; // bots sempre desligados ao sair
+  };
+  saveCurrentState(activeProfileId);
+
+  // ── 3. Carrega perfil de destino ──
+  activeProfileId = id;
+
+  if(id === 'default'){
+    // Volta para os dados do GL_DEMO padrão (sem modificar)
+    // GL_DEMO já está com os dados do padrão salvos
+    Object.assign(PA, {sz:.01,ct:5,cf:.58,spd:3,maxPos:5});
+    // Deixa STATS e GL como estão (padrão nunca foi sobrescrito)
+  } else {
+    const prof = PROFILES.find(p=>p.id===id);
+    if(!prof){ addLog('r','❌ Perfil não encontrado'); return; }
+    // Copia dados do perfil para GL_DEMO
+    GL_DEMO.free        = prof.GL.free || 10;
+    GL_DEMO.inp         = prof.GL.inp  || 0;
+    GL_DEMO.positions   = (prof.GL.positions||[]).map(p=>({...p}));
+    GL_DEMO.trades      = (prof.GL.trades||[]).slice(0,200);
+    GL_DEMO.elapsed     = prof.GL.elapsed || 0;
+    GL_DEMO.totalOrders = prof.GL.totalOrders || 0;
+    Object.assign(STATS_DEMO, prof.STATS || _makeStats());
+    Object.assign(PA,         prof.PA         || {});
+    Object.assign(COPY_CFG,   prof.COPY_CFG   || {});
+    Object.assign(CRYPTO_CFG, prof.CRYPTO_CFG || {});
+    Object.assign(PIZZA_CFG,  prof.PIZZA_CFG  || {});
+    addLog('g','🎭 Perfil "'+prof.name+'" carregado · $'+GL_DEMO.free.toFixed(2)+' · '+GL_DEMO.trades.length+' trades');
+  }
+
+  // ── 4. Atualiza ponteiros se estiver em demo ──
+  if(tradeMode==='demo'){
+    GL=GL_DEMO; STATS=STATS_DEMO; bancaTotal=GL_DEMO.free;
+  }
+
+  // ── 5. Atualiza UI — bots aparecem DESLIGADOS ──
+  updSize(); updCopyCfg(); updCryptoCfg(); updPizzaCfg();
+  upd(); renderPos(); renderHist();
+  updCtrl('edge'); updCtrl('copy'); updCtrl('crypto'); updCtrl('pizza');
+  _saveProfiles();
+  savePersistence();
+  renderProfiles();
+  _updProfileHeader();
+}
+
+function deleteProfile(id){
+  if(!confirm('Remover este perfil e todos os dados?')) return;
+  PROFILES = PROFILES.filter(p=>p.id!==id);
+  if(activeProfileId===id){ activeProfileId='default'; }
+  _saveProfiles();
+  renderProfiles();
+  addLog('b','🎭 Perfil removido');
+}
+
+function renderProfiles(){
+  const list = document.getElementById('profiles-list');
+  if(!list) return;
+
+  const allProfiles = [{id:'default',name:'⚡ Padrão', isDefault:true,
+    GL:{free:activeProfileId==='default'?GL_DEMO.free:10, trades:activeProfileId==='default'?GL_DEMO.trades:[]},
+    STATS:activeProfileId==='default'?STATS_DEMO:_makeStats()
+  }, ...PROFILES];
+
+  list.innerHTML = allProfiles.map(p => {
+    const isActive = p.id===activeProfileId;
+    const trades   = (p.GL.trades||[]).length;
+    const stats    = p.STATS||_makeStats();
+    const totalPnl = (stats.edge?.pnl||0)+(stats.copy?.pnl||0)+(stats.crypto?.pnl||0)+(stats.pizza?.pnl||0);
+    const pnlColor = totalPnl>0?'var(--green)':totalPnl<0?'var(--red)':'var(--muted)';
+    const pnlStr   = (totalPnl>=0?'+':'')+totalPnl.toFixed(4);
+    return `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;
+      border:1px solid ${isActive?'var(--green)':'var(--border)'};border-radius:8px;
+      background:${isActive?'rgba(0,229,160,.05)':'var(--bg)'}">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11px;font-weight:${isActive?700:500};
+          color:${isActive?'var(--green)':'var(--text)'};
+          white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
+        <div style="font-size:8px;font-family:var(--mono);color:var(--muted);margin-top:1px">
+          $${(p.GL.free||10).toFixed(2)} · ${trades} trades
+          <span style="color:${pnlColor};margin-left:4px">${pnlStr}</span>
+        </div>
+      </div>
+      ${!isActive
+        ? `<button class="btn" onclick="switchProfile('${p.id}')"
+            style="font-size:9px;padding:3px 8px;color:var(--cyan);border-color:rgba(34,211,238,.3)">Usar</button>`
+        : `<span style="font-size:8px;font-family:var(--mono);color:var(--green)">● ativo</span>`}
+      ${!p.isDefault
+        ? `<button class="btn btn-r" onclick="deleteProfile('${p.id}')"
+            style="font-size:9px;padding:3px 6px">✕</button>`
+        : ''}
+    </div>`;
+  }).join('');
+}
+
+function _updProfileHeader(){
+  // Mostra nome do perfil ativo no topbar
+  let el = document.getElementById('profile-name-hdr');
+  if(!el){
+    // Cria o elemento se não existe ainda
+    const topbar = document.querySelector('.topbar');
+    if(!topbar) return;
+    el = document.createElement('span');
+    el.id = 'profile-name-hdr';
+    el.style.cssText = 'font-size:8px;font-family:var(--mono);color:var(--muted);'
+      +'margin-left:4px;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    // Insere após o logo
+    const logo = topbar.querySelector('.logo-wrap');
+    if(logo) logo.appendChild(el);
+  }
+  const name = activeProfileId==='default' ? '' :
+    (PROFILES.find(p=>p.id===activeProfileId)||{name:''}).name;
+  el.textContent = name ? '· '+name : '';
+  el.title = name || 'Perfil padrão';
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PERSONALIZAÇÃO — fonte e paleta de cores
+// ═══════════════════════════════════════════════════════════════
+
+let currentFontSize  = 'medium';
+let currentPalette   = 'dark';
+let currentAccent    = '#00e5a0';
+
+const PALETTES = {
+  dark:     {bg:'#080c10',surface:'#0f1318',card:'#151b22',border:'#1e2730',border2:'#2a3540',text:'#e8f0f8',muted:'#5a7080',muted2:'#3d5060',green:'#00e5a0',red:'#ff4d6d',amber:'#f5a623',cyan:'#22d3ee',purple:'#a78bfa'},
+  midnight: {bg:'#0a0f1e',surface:'#0f1730',card:'#141f3a',border:'#1e2d50',border2:'#263a66',text:'#e2eaf8',muted:'#4a6080',muted2:'#2d4060',green:'#60a5fa',red:'#f472b6',amber:'#34d399',cyan:'#a78bfa',purple:'#818cf8'},
+  amber:    {bg:'#0c0800',surface:'#1a1200',card:'#221800',border:'#3a2800',border2:'#4a3400',text:'#fef3c7',muted:'#92600a',muted2:'#6b4508',green:'#84cc16',red:'#ef4444',amber:'#fbbf24',cyan:'#f97316',purple:'#fb923c'},
+  matrix:   {bg:'#000800',surface:'#001200',card:'#001a00',border:'#003000',border2:'#004000',text:'#86efac',muted:'#166534',muted2:'#14532d',green:'#22c55e',red:'#4ade80',amber:'#86efac',cyan:'#4ade80',purple:'#16a34a'},
+  neon:     {bg:'#07001a',surface:'#0d0024',card:'#12002e',border:'#25005a',border2:'#35007a',text:'#f0e6ff',muted:'#7030a0',muted2:'#500080',green:'#22d3ee',red:'#f0abfc',amber:'#fef08a',cyan:'#e879f9',purple:'#a78bfa'},
+  mono:     {bg:'#f8fafc',surface:'#f1f5f9',card:'#e2e8f0',border:'#cbd5e1',border2:'#94a3b8',text:'#0f172a',muted:'#475569',muted2:'#64748b',green:'#0ea5e9',red:'#ef4444',amber:'#f59e0b',cyan:'#06b6d4',purple:'#8b5cf6'},
+};
+
+function renderCfgTab(){
+  // Highlight palette ativa
+  Object.keys(PALETTES).forEach(k=>{
+    const el=document.getElementById('pal-'+k);
+    if(el) el.classList.toggle('active', k===currentPalette);
+  });
+  // Highlight tamanho ativo
+  ['small','medium','large'].forEach(k=>{
+    const el=document.getElementById('fs-'+k);
+    if(el) el.style.borderColor = k===currentFontSize ? 'var(--green)' : 'var(--border)';
+  });
+  // Cor atual no color picker
+  const cp=document.getElementById('custom-accent');
+  if(cp) cp.value=currentAccent;
+  // Renderiza perfis
+  renderProfiles();
+}
+
+function setFontSize(size){
+  currentFontSize = size;
+  const scaleMap = {small:0.88, medium:1.0, large:1.14};
+  const scale = scaleMap[size] || 1.0;
+  // Usa CSS zoom para escalar todo o app proporcionalmente
+  const phone = document.querySelector('.phone');
+  if(phone){
+    phone.style.zoom = scale;
+    phone.style.transform = '';
+  }
+  // Também aumenta o body font-size para textos que usam rem/em
+  document.documentElement.style.fontSize = {small:'13px',medium:'16px',large:'19px'}[size];
+  ['small','medium','large'].forEach(k=>{
+    const el=document.getElementById('fs-'+k);
+    if(el){
+      el.style.borderColor  = k===size ? 'var(--green)' : 'var(--border)';
+      el.style.background   = k===size ? 'rgba(0,229,160,.1)' : '';
+      el.style.color        = k===size ? 'var(--green)' : '';
+    }
+  });
+  _saveCfgPrefs();
+  addLog('b','🔤 Tamanho: '+size+' ('+Math.round(scale*100)+'%)');
+}
+
+function setPalette(name){
+  currentPalette = name;
+  const p = PALETTES[name];
+  if(!p) return;
+  const root = document.documentElement;
+  root.style.setProperty('--bg',      p.bg);
+  root.style.setProperty('--surface', p.surface);
+  root.style.setProperty('--card',    p.card);
+  root.style.setProperty('--border',  p.border);
+  root.style.setProperty('--border2', p.border2);
+  root.style.setProperty('--text',    p.text);
+  root.style.setProperty('--muted',   p.muted);
+  root.style.setProperty('--muted2',  p.muted2);
+  root.style.setProperty('--green',   p.green);
+  root.style.setProperty('--red',     p.red);
+  root.style.setProperty('--amber',   p.amber);
+  root.style.setProperty('--cyan',    p.cyan);
+  root.style.setProperty('--purple',  p.purple);
+  // Color picker
+  const cp=document.getElementById('custom-accent');
+  if(cp){ cp.value=p.green; currentAccent=p.green; }
+  // Highlight cards
+  Object.keys(PALETTES).forEach(k=>{
+    const el=document.getElementById('pal-'+k);
+    if(el) el.classList.toggle('active', k===name);
+  });
+  _saveCfgPrefs();
+  addLog('b','🎨 Paleta: '+name);
+}
+
+function setCustomAccent(color){
+  currentAccent = color;
+  document.documentElement.style.setProperty('--green', color);
+  _saveCfgPrefs();
+}
+
+function _saveCfgPrefs(){
+  try{ localStorage.setItem('pt_cfg_v17', JSON.stringify({fontSize:currentFontSize,palette:currentPalette,accent:currentAccent})); }catch(_){}
+}
+
+function _loadCfgPrefs(){
+  try{
+    const raw=localStorage.getItem('pt_cfg_v17');
+    if(!raw) return;
+    const p=JSON.parse(raw);
+    if(p.palette) setPalette(p.palette);
+    if(p.fontSize) setFontSize(p.fontSize);
+    if(p.accent) setCustomAccent(p.accent);
+  }catch(_){}
+}
+
+function confirmResetData(scope){
+  const msg = scope==='demo' ? 'Limpar todos os dados de DEMO? (Real preservado)'
+    : scope==='real' ? 'Limpar dados REAIS? (Demo preservado)'
+    : 'Limpar TODOS os dados? Esta ação é irreversível!';
+  if(!confirm(msg)) return;
+  if(!scope || scope==='all'){
+    localStorage.clear();
+    addLog('r','🗑 Todos os dados apagados · recarregando...');
+    setTimeout(()=>location.reload(), 1000);
+  } else if(scope==='real'){
+    GL_REAL.free=0;GL_REAL.inp=0;GL_REAL.positions=[];GL_REAL.trades=[];GL_REAL.elapsed=0;GL_REAL.totalOrders=0;
+    Object.assign(STATS_REAL, _makeStats());
+    savePersistence();
+    if(tradeMode==='real'){GL=GL_REAL;STATS=STATS_REAL;bancaTotal=0;}
+    upd();renderPos();renderHist();
+    addLog('g','✅ Dados reais limpos');
+  } else {
+    // Só limpa demo
+    GL_DEMO.free=10;GL_DEMO.inp=0;GL_DEMO.positions=[];GL_DEMO.trades=[];GL_DEMO.elapsed=0;GL_DEMO.totalOrders=0;
+    Object.assign(STATS_DEMO, _makeStats());
+    PNL_HISTORY.length=0;
+    PROFILES=[];
+    savePersistence();
+    if(tradeMode==='demo'){GL=GL_DEMO;STATS=STATS_DEMO;bancaTotal=10;}
+    upd();renderPos();renderHist();
+    addLog('g','✅ Dados demo limpos · Saldo: $10.00');
+  }
+}
+
+
 // ═══════════════════ INIT ═══════════════════════════
 loadPersistence();
+_loadProfiles();
+_loadCfgPrefs();
+renderProfiles();
 renderMkts();renderDefcon();renderShops();renderCryptoWatchers();renderTraders();upd();updSize();updCopyCfg();updCryptoCfg();updPizzaCfg();updPizzaCfgBot();setCryptoMode('poly');
 startRealDataFeed();
 setTimeout(resumeSavedBots, 1500); // retoma bots da sessão anterior
@@ -3225,7 +3764,7 @@ setTimeout(resumeSavedBots, 1500); // retoma bots da sessão anterior
 // Inicia sweep de fechamento imediatamente — não depende de bot ativo
 startShared();
 
-addLog('b','PolyTrader v16 · PizzINT + Edge + Copy + Cripto · tudo dentro da Polymarket');
+addLog('b','PolyTrader v17 · PizzINT + Edge + Copy + Cripto · tudo dentro da Polymarket');
 addLog('z','🍕 Aba "Pizza" → monitore o Pentagon Pizza Index em tempo real');
 addLog('z','🍕 DEFCON ≤ 3 → bot entra automaticamente em mercados geopolíticos');
 addLog('g','💡 Aba "Sugestões" → recomendações combinando todos os sinais');
