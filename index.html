@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PolyTrader v15</title>
+<title>PolyTrader v16</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -270,7 +270,7 @@ input[type=range]{flex:1;accent-color:var(--green)}
   <div class="logo-wrap">
     <div class="logo-dot"></div>
     <span class="logo">PolyTrader</span>
-    <span class="badge bdemo" id="mode-badge" onclick="toggleTradeMode()" title="Toque para alternar Demo ↔ Real" style="margin-left:5px;cursor:pointer;user-select:none">Demo</span>
+    <div style="display:flex;align-items:center;border-radius:20px;overflow:hidden;border:1px solid var(--border2);font-family:var(--mono);font-size:9px;font-weight:700"><button id="tab-demo-btn" onclick="setMode('demo')" style="padding:3px 10px;border:none;cursor:pointer;background:var(--green);color:#000;font-family:var(--mono);font-size:9px;font-weight:700">DEMO</button><button id="tab-real-btn" onclick="setMode('real')" style="padding:3px 10px;border:none;cursor:pointer;background:transparent;color:var(--muted);font-family:var(--mono);font-size:9px;font-weight:700">REAL</button></div>
   </div>
   <button class="wc-btn" id="wc-btn" onclick="openWC()">
     <span class="wc-dot-el" id="wc-dot"></span>
@@ -920,7 +920,7 @@ let CA={};
 CRYPTO_ASSETS.forEach(a=>{CA[a.id]={price:a.price,chgPct:0,candles:[],euphoria:false};});
 
 // Pizza state
-let PIZZA={
+function _mkPizza(){return {
   defcon:5,
   shops:{},
   monitoring:false,
@@ -929,12 +929,19 @@ let PIZZA={
   pizzaBot:false,
   signals:[],
   int:null,
-};
+};}
+const PIZZA_DEMO=_mkPizza();
+const PIZZA_REAL=_mkPizza();
+let PIZZA=PIZZA_DEMO;
 SHOPS.forEach(s=>{PIZZA.shops[s.id]={activity:s.base,trend:0,status:'Normal'};});
 
 let traders=TRADERS_BASE.map(t=>({...t,copying:false,copiedTrades:0,copiedPnl:0,wins:0,losses:0}));
-let BOTS={edge:false,copy:false,crypto:false,pizza:false};
-let BI={edge:null,copy:null,crypto:null,pizza:null,price:null,clk:null,sweep:null};
+const BOTS_DEMO={edge:false,copy:false,crypto:false,pizza:false};
+const BOTS_REAL={edge:false,copy:false,crypto:false,pizza:false};
+let BOTS=BOTS_DEMO;
+const BI_DEMO={edge:null,copy:null,crypto:null,pizza:null,price:null,clk:null,sweep:null};
+const BI_REAL={edge:null,copy:null,crypto:null,pizza:null,price:null,clk:null,sweep:null};
+let BI=BI_DEMO;
 // STATS separados por modo
 function _makeStats(){return {
   edge:  {pnl:0,trades:0,wins:0,losses:0,entries:0},
@@ -960,7 +967,6 @@ let CRYPTO_CFG={euph:1.5,candle:3,sz:.20,ct:8,lev:3};
 let PIZZA_CFG={defconTrigger:2,sz:.20,ct:8};
 let bancaTotal=10;
 let walletConnected=false,walletName='';
-let tradeMode='demo'; // 'demo' ou 'real' — independente da wallet
 // GL_DEMO.free e GL_REAL.free agora são GL_DEMO.free e GL_REAL.free
 let pendingCB=null;
 const PRESETS={1:.01,5:.05,10:.10,50:.50,100:1,200:2,500:5,1000:10};
@@ -1076,73 +1082,63 @@ function _connectDetected(idx){
 
 
 // ── Toggle Demo / Real independente da wallet ──
-function toggleTradeMode(){
-  tradeMode = tradeMode === 'demo' ? 'real' : 'demo';
-  applyTradeMode();
-}
 
-async function applyTradeMode(){
-  const badge = document.getElementById('mode-badge');
-  if(!badge) return;
 
-  // Para todos os bots antes de trocar (evita cruzamento de estados)
-  const wasRunning = {
-    edge:BOTS.edge, copy:BOTS.copy, crypto:BOTS.crypto, pizza:BOTS.pizza
-  };
-  if(BOTS.edge)  { clearInterval(BI.edge);  BI.edge=null;  BOTS.edge=false;  updCtrl('edge'); }
-  if(BOTS.copy)  { clearInterval(BI.copy);  BI.copy=null;  BOTS.copy=false;  updCtrl('copy'); }
-  if(BOTS.crypto){ clearInterval(BI.crypto);BI.crypto=null;BOTS.crypto=false; updCtrl('crypto'); }
-  if(BOTS.pizza) { clearInterval(BI.pizza); BI.pizza=null; BOTS.pizza=false;
-                   PIZZA.monitoring=false; PIZZA.autoTradeEnabled=false; updCtrl('pizza'); }
-  maybeStopShared();
 
-  if(tradeMode === 'real'){
-    // ── Ativa estado REAL — GL e STATS apontam para GL_REAL/STATS_REAL ──
-    GL    = GL_REAL;
-    STATS = STATS_REAL;
-    badge.className = 'badge breal';
-    badge.textContent = 'Real';
 
+// ══════════════════════════════════════════════════════════
+//  setMode — troca Demo↔Real sem parar nenhum bot
+//  Cada modo tem GL, STATS, BOTS, BI, PIZZA independentes
+// ══════════════════════════════════════════════════════════
+let tradeMode = 'demo';
+
+function setMode(mode){
+  if(tradeMode === mode) return;
+  tradeMode = mode;
+  if(mode === 'real'){
+    GL=GL_REAL; STATS=STATS_REAL; BOTS=BOTS_REAL; BI=BI_REAL; PIZZA=PIZZA_REAL;
+    bancaTotal = GL_REAL.free || 0;
+    _updModeUI('real');
+    // Busca saldo se wallet conectada
     if(walletConnected && walletAddress && walletProvider){
-      addLog('b','💰 Buscando saldo USDC real na Polygon...');
-      try {
-        const bal = await fetchUSDCBalance(walletAddress);
-        GL_REAL.free = bal;
-        bancaTotal   = bal;
-        upd();
-        addLog(bal>0?'g':'la', bal>0
-          ? '💰 Saldo real: $'+bal.toFixed(2)+' USDC na Polygon'
-          : '⚠️ Saldo USDC $0.00 — adicione USDC para operar');
-      } catch(e){
-        addLog('la','⚠️ Não foi possível ler saldo: '+e.message);
-        upd();
-      }
+      fetchUSDCBalance(walletAddress).then(bal=>{
+        GL_REAL.free=bal; bancaTotal=bal; upd();
+        addLog(bal>0?'g':'la', bal>0?'💰 USDC real: $'+bal.toFixed(2):'⚠️ Saldo USDC $0.00 na Polygon');
+      }).catch(e=>addLog('la','⚠️ '+e.message));
     } else {
-      bancaTotal = GL_REAL.free;
+      addLog('la','⚠️ REAL: conecte a MetaMask para ver saldo real');
       upd();
-      addLog('la','⚠️ Modo REAL sem wallet — conecte a MetaMask primeiro');
     }
-    addLog('r','🔴 MODO REAL ATIVO — Bots pausados para segurança');
-    addLog('r','   Religue os bots manualmente quando pronto para operar');
-
+    addLog('r','🔴 MODO REAL ativo — bots Demo continuam rodando em paralelo');
   } else {
-    // ── Volta para estado DEMO — GL e STATS apontam para GL_DEMO/STATS_DEMO ──
-    GL    = GL_DEMO;
-    STATS = STATS_DEMO;
+    GL=GL_DEMO; STATS=STATS_DEMO; BOTS=BOTS_DEMO; BI=BI_DEMO; PIZZA=PIZZA_DEMO;
     bancaTotal = GL_DEMO.free;
-    badge.className = 'badge bdemo';
-    badge.textContent = 'Demo';
+    _updModeUI('demo');
     upd();
-    addLog('g','✅ MODO DEMO — Saldo: $'+GL_DEMO.free.toFixed(2)+' USDC (fictício)');
-    addLog('b','💡 Trades demo não afetam saldo real · saldo real preservado');
-
-    // Retoma bots que estavam ativos (só no demo)
-    if(wasRunning.edge)   setTimeout(()=>toggleEdgeBot(),   100);
-    if(wasRunning.copy)   setTimeout(()=>toggleCopyBot(),   200);
-    if(wasRunning.crypto) setTimeout(()=>toggleCryptoBot(), 300);
+    addLog('g','✅ MODO DEMO ativo — bots Real preservados em paralelo');
   }
+  updCtrl('edge'); updCtrl('copy'); updCtrl('crypto'); updCtrl('pizza');
+  renderPos(); renderHist();
+  savePersistence();
 }
 
+function _updModeUI(mode){
+  const d=document.getElementById('tab-demo-btn');
+  const r=document.getElementById('tab-real-btn');
+  if(!d||!r) return;
+  if(mode==='demo'){
+    d.style.cssText='padding:3px 10px;border:none;cursor:pointer;background:var(--green);color:#000;font-family:var(--mono);font-size:9px;font-weight:700';
+    r.style.cssText='padding:3px 10px;border:none;cursor:pointer;background:transparent;color:var(--muted);font-family:var(--mono);font-size:9px;font-weight:700';
+  } else {
+    d.style.cssText='padding:3px 10px;border:none;cursor:pointer;background:transparent;color:var(--muted);font-family:var(--mono);font-size:9px;font-weight:700';
+    r.style.cssText='padding:3px 10px;border:none;cursor:pointer;background:var(--red);color:#fff;font-family:var(--mono);font-size:9px;font-weight:700';
+  }
+  // Atualiza badge legado se existir
+  const b=document.getElementById('mode-badge');
+  if(b){b.className='badge b'+mode;b.textContent=mode==='demo'?'Demo':'Real';}
+}
+
+function toggleTradeMode(){ setMode(tradeMode==='demo'?'real':'demo'); }
 
 // ═══════════════════════════════════════════════════════════════
 //  WALLET REAL — window.ethereum (MetaMask / EIP-1193)
@@ -2146,7 +2142,7 @@ function execBinanceTrade(asset,side,sz,ct){
     chgPct:CA[asset.id]?.chgPct||0,
     isReal:false,closeAt,isBinance:true,side,leverage:lev
   };
-  GL.positions.push(pos);
+  GL.positions.push(pos);savePersistence();
   addLog('la','⚡[BNB-DEMO] '+side+' '+asset.symbol+' '+lev+'x · '+ct+'×$'+sz.toFixed(2)+' = $'+total.toFixed(2)+' USDT');
   upd();
 }
@@ -2219,7 +2215,7 @@ function execCryptoPolyBuy(mktId,mktQ,sz,ct,assetId,assetName,chgPct,isUp){
     ts:now(),source:'crypto',assetId,assetName,chgPct,isReal:(tradeMode==='real'&&walletConnected),
     closeAt
   };
-  GL.positions.push(pos);
+  GL.positions.push(pos);savePersistence();
   addLog('c','⚡ Euforia '+assetName+' '+(isUp?'⬆️':'⬇️')+chgPct.toFixed(2)+'% → YES Polymarket $'+total.toFixed(2));
   upd();
 }
@@ -2247,7 +2243,7 @@ function execPolyBuy(mktId,mktQ,out,price,sz,ct,source,traderId,label){
     ts:now(),source,traderId,isReal:(tradeMode==='real'&&walletConnected),
     closeAt
   };
-  GL.positions.push(pos);
+  GL.positions.push(pos);savePersistence();
   addLog(out==='YES'?'g':'r','['+label+'] '+out+' "'+mktQ.slice(0,26)+'..." $'+total.toFixed(2));
   upd();
 }
@@ -2285,7 +2281,7 @@ function closePolyPos(posId){
 
   GL.trades.unshift({...pos,closedAt:now()});
   addLog(pnl>=0?'g':'r','['+src.toUpperCase()+'] '+pos.out+' · '+fmtPnl(pnl)+' · saldo $'+GL.free.toFixed(4));
-  upd();updReport();renderTraders();renderHist();recordPnlSnapshot();if(pnl>0)playProfitSound();else playLossSound();
+  upd();updReport();renderTraders();renderHist();recordPnlSnapshot();savePersistence();if(pnl>0)playProfitSound();else playLossSound();
 }
 function reqBuy(mktId,out){
   const all=[...MKT_POLY,...Object.values(CRYPTO_PRED).flat()];
@@ -2383,7 +2379,7 @@ function updSize(){
 }
 function updCopyQual(){const q=traders.filter(t=>t.wr>=COPY_CFG.wr).length;document.getElementById('ci-qual').textContent=q+' de '+traders.length;}
 function setBanca(amt){
-  if(tradeMode==='real'){ addLog('r','❌ Não é possível editar saldo em modo Real'); return; }
+  if(tradeMode==='real'){ addLog('r','❌ Não é possível editar saldo em modo Real · alterne para Demo'); return; }
   bancaTotal=amt;GL_DEMO.free=amt;GL_DEMO.inp=0;GL_DEMO.positions=[];GL_DEMO.trades=[];GL_DEMO.totalOrders=0;GL_DEMO.elapsed=0;
   GL=GL_DEMO; STATS=STATS_DEMO; // garante que GL aponta para demo
   _posIdCounter=1;
@@ -3099,14 +3095,137 @@ let _audioCtx=null;
 function playProfitSound(){try{if(!_audioCtx)_audioCtx=new(window.AudioContext||window.webkitAudioContext)();[523,659].forEach((f,i)=>{const o=_audioCtx.createOscillator(),g=_audioCtx.createGain();o.connect(g);g.connect(_audioCtx.destination);o.frequency.value=f;o.type='sine';g.gain.setValueAtTime(0.12,_audioCtx.currentTime+i*.15);g.gain.exponentialRampToValueAtTime(0.001,_audioCtx.currentTime+i*.15+.3);o.start(_audioCtx.currentTime+i*.15);o.stop(_audioCtx.currentTime+i*.15+.3);});}catch(_){}}
 function playLossSound(){try{if(!_audioCtx)_audioCtx=new(window.AudioContext||window.webkitAudioContext)();const o=_audioCtx.createOscillator(),g=_audioCtx.createGain();o.connect(g);g.connect(_audioCtx.destination);o.frequency.value=220;o.type='triangle';g.gain.setValueAtTime(0.1,_audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,_audioCtx.currentTime+.4);o.start();o.stop(_audioCtx.currentTime+.4);}catch(_){}}
 
+
+// ══════════════════════════════════════════════════════════
+//  PERSISTÊNCIA — localStorage (GitHub Pages / file://)
+//  Salva estado completo a cada trade e ao sair
+// ══════════════════════════════════════════════════════════
+
+function savePersistence(){
+  try {
+    const data = {
+      v: 16,
+      ts: Date.now(),
+      tradeMode,
+      // Estado Demo
+      GL_DEMO: {
+        free: GL_DEMO.free, inp: GL_DEMO.inp,
+        elapsed: GL_DEMO.elapsed, totalOrders: GL_DEMO.totalOrders,
+        positions: GL_DEMO.positions.map(p=>({...p})),
+        trades: GL_DEMO.trades.slice(0, 200)
+      },
+      STATS_DEMO: JSON.parse(JSON.stringify(STATS_DEMO)),
+      BOTS_DEMO: {...BOTS_DEMO},
+      // Estado Real (sem posições abertas — apenas trades fechados)
+      GL_REAL: {
+        free: GL_REAL.free, inp: GL_REAL.inp,
+        elapsed: GL_REAL.elapsed, totalOrders: GL_REAL.totalOrders,
+        positions: GL_REAL.positions.map(p=>({...p})),
+        trades: GL_REAL.trades.slice(0, 200)
+      },
+      STATS_REAL: JSON.parse(JSON.stringify(STATS_REAL)),
+      BOTS_REAL: {...BOTS_REAL},
+      // Histórico PNL
+      PNL_HISTORY: PNL_HISTORY.slice(-120),
+    };
+    localStorage.setItem('polytrader_v16', JSON.stringify(data));
+  } catch(e){ /* quota exceeded */ }
+}
+
+function loadPersistence(){
+  try {
+    const raw = localStorage.getItem('polytrader_v16');
+    if(!raw) return false;
+    const data = JSON.parse(raw);
+    if(!data || data.v !== 16) return false;
+
+    const age = (Date.now() - data.ts) / 1000 / 60; // minutos
+    addLog('b', '💾 Restaurando sessão ('+ Math.round(age) +'min atrás)...');
+
+    // Restaura GL_DEMO
+    if(data.GL_DEMO){
+      GL_DEMO.free         = data.GL_DEMO.free  || 10;
+      GL_DEMO.inp          = data.GL_DEMO.inp   || 0;
+      GL_DEMO.elapsed      = data.GL_DEMO.elapsed || 0;
+      GL_DEMO.totalOrders  = data.GL_DEMO.totalOrders || 0;
+      GL_DEMO.positions    = data.GL_DEMO.positions || [];
+      GL_DEMO.trades       = data.GL_DEMO.trades || [];
+    }
+    if(data.STATS_DEMO) Object.assign(STATS_DEMO, data.STATS_DEMO);
+
+    // Restaura GL_REAL
+    if(data.GL_REAL){
+      GL_REAL.free        = data.GL_REAL.free || 0;
+      GL_REAL.inp         = data.GL_REAL.inp  || 0;
+      GL_REAL.elapsed     = data.GL_REAL.elapsed || 0;
+      GL_REAL.totalOrders = data.GL_REAL.totalOrders || 0;
+      GL_REAL.positions   = data.GL_REAL.positions || [];
+      GL_REAL.trades      = data.GL_REAL.trades || [];
+    }
+    if(data.STATS_REAL) Object.assign(STATS_REAL, data.STATS_REAL);
+
+    // Restaura PNL_HISTORY
+    if(data.PNL_HISTORY && data.PNL_HISTORY.length){
+      PNL_HISTORY.push(...data.PNL_HISTORY);
+    }
+
+    // Restaura bots ativos
+    if(data.BOTS_DEMO) Object.assign(BOTS_DEMO, data.BOTS_DEMO);
+    if(data.BOTS_REAL) Object.assign(BOTS_REAL, data.BOTS_REAL);
+
+    // Restaura modo
+    const mode = data.tradeMode || 'demo';
+    tradeMode = mode === 'real' ? 'demo' : 'demo'; // sempre começa em demo por segurança
+
+    addLog('g', '✅ Sessão restaurada: '
+      + GL_DEMO.trades.length + ' trades demo · '
+      + GL_REAL.trades.length + ' trades real');
+    addLog('b', '💡 Reconecte a wallet para retomar modo Real');
+    return true;
+  } catch(e){
+    addLog('la', '⚠️ Erro ao restaurar sessão: '+e.message);
+    return false;
+  }
+}
+
+// Relança bots que estavam ativos na sessão anterior
+function resumeSavedBots(){
+  // Demo bots
+  if(BOTS_DEMO.edge && !BI_DEMO.edge){
+    BOTS_DEMO.edge=false; // reset para toggleEdgeBot poder ligar
+    if(tradeMode==='demo'){ toggleEdgeBot(); }
+  }
+  if(BOTS_DEMO.copy && !BI_DEMO.copy){
+    BOTS_DEMO.copy=false;
+    if(tradeMode==='demo'){ toggleCopyBot(); }
+  }
+  if(BOTS_DEMO.crypto && !BI_DEMO.crypto){
+    BOTS_DEMO.crypto=false;
+    if(tradeMode==='demo'){ toggleCryptoBot(); }
+  }
+  if(BOTS_DEMO.pizza){
+    BOTS_DEMO.pizza=false;
+    // Pizza bot tem lógica própria — só loga
+    addLog('la','💡 Bot Pizza estava ativo — toque em PIZZA para retomar');
+  }
+}
+
+// Salva ao fechar/recarregar a página
+window.addEventListener('beforeunload', ()=>savePersistence());
+// Salva a cada 30s em background
+setInterval(()=>savePersistence(), 30000);
+
+
 // ═══════════════════ INIT ═══════════════════════════
+loadPersistence();
 renderMkts();renderDefcon();renderShops();renderCryptoWatchers();renderTraders();upd();updSize();updCopyCfg();updCryptoCfg();updPizzaCfg();updPizzaCfgBot();setCryptoMode('poly');
-startRealDataFeed(); // inicia feed de preços reais
+startRealDataFeed();
+setTimeout(resumeSavedBots, 1500); // retoma bots da sessão anterior
 
 // Inicia sweep de fechamento imediatamente — não depende de bot ativo
 startShared();
 
-addLog('b','PolyTrader v15 · PizzINT + Edge + Copy + Cripto · tudo dentro da Polymarket');
+addLog('b','PolyTrader v16 · PizzINT + Edge + Copy + Cripto · tudo dentro da Polymarket');
 addLog('z','🍕 Aba "Pizza" → monitore o Pentagon Pizza Index em tempo real');
 addLog('z','🍕 DEFCON ≤ 3 → bot entra automaticamente em mercados geopolíticos');
 addLog('g','💡 Aba "Sugestões" → recomendações combinando todos os sinais');
