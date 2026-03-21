@@ -1,1 +1,0 @@
-Polytrader bot test 
